@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GorillaLink — secure connection</title>
+  <style>
+    /* Old Internet Explorer / Windows 98 / classic era vibe */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: #3a6ea5;  /* classic IE blue */
+      font-family: 'Segoe UI', 'Tahoma', 'Arial', 'Helvetica', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 16px;
+      /* subtle desktop pattern */
+      background-image: 
+        linear-gradient(45deg, #2c5a8a 25%, transparent 25%),
+        linear-gradient(-45deg, #2c5a8a 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #2c5a8a 75%),
+        linear-gradient(-45deg, transparent 75%, #2c5a8a 75%);
+      background-size: 20px 20px;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+    }
+
+    .window {
+      width: 700px;
+      max-width: 100%;
+      background: #ece9d8;   /* old windows beige */
+      border: 2px solid;
+      border-color: #ffffff #404040 #404040 #ffffff;
+      box-shadow: 4px 4px 0 #1e3b5c, 8px 8px 0 rgba(0, 0, 0, 0.3);
+      padding: 0;
+      font-size: 14px;
+      position: relative;
+    }
+
+    .title-bar {
+      background: #0a246a;   /* classic active title blue */
+      color: white;
+      padding: 6px 8px;
+      font-weight: bold;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid #ffffff;
+      letter-spacing: 0.3px;
+    }
+
+    .title-bar-text {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .title-bar-text img {
+      width: 18px;
+      height: 18px;
+      filter: drop-shadow(1px 1px 0 #000);
+    }
+
+    .title-bar-controls {
+      display: flex;
+      gap: 2px;
+    }
+
+    .title-bar-controls button {
+      width: 22px;
+      height: 20px;
+      background: #d4d0c8;
+      border: 2px solid;
+      border-color: #ffffff #404040 #404040 #ffffff;
+      font-weight: bold;
+      font-size: 12px;
+      line-height: 1;
+      cursor: default;
+      color: #000;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Marlett', 'Arial', sans-serif;
+    }
+
+    .title-bar-controls button:active {
+      border-color: #404040 #ffffff #ffffff #404040;
+    }
+
+    .window-body {
+      padding: 20px 22px 24px 22px;
+      background: #ece9d8;
+    }
+
+    .header-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 18px;
+      background: #d4d0c8;
+      padding: 10px 14px;
+      border: 2px solid;
+      border-color: #ffffff #404040 #404040 #ffffff;
+    }
+
+    .header-logo span {
+      font-size: 32px;
+      line-height: 1;
+      filter: drop-shadow(2px 2px 0 #8b8b8b);
+    }
+
+    .header-logo h1 {
+      font-size: 28px;
+      font-weight: 900;
+      color: #0a246a;
+      text-shadow: 2px 2px 0 #ffffff, 3px 3px 0 #9c9a8e;
+      letter-spacing: -0.5px;
+      font-family: 'Arial Black', 'Impact', 'Franklin Gothic Heavy', sans-serif;
+    }
+
+    .status-bar {
+      background: #d4d0c8;
+      border: 2px solid;
+      border-color: #ffffff #404040 #404040 #ffffff;
+      padding: 8px 12px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: #1a1a1a;
+      flex-wrap: wrap;
+    }
+
+    .lock-icon {
+      font-size: 18px;
+      filter: drop-shadow(1px 1px 0 #999);
+    }
+
+    .secure-badge {
+      background: #1f7a1f;
+      color: #e0ffe0;
+      padding: 2px 12px;
+      border-radius: 12px;
+      font-weight: bold;
+      font-size: 11px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      border: 1px solid #0a4a0a;
+      box-shadow: inset 0 1px 2px #7fbf7f;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .secure-badge.loading {
+      background: #b8860b;
+      color: #fff8e0;
+    }
+
+    .link-form {
+      background: #f5f3ed;
+      border: 2px solid;
+      border-color: #ffffff #a0a0a0 #a0a0a0 #ffffff;
+      padding: 22px 20px 20px 20px;
+      margin-bottom: 18px;
+    }
+
+    .link-form label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 8px;
+      color: #1a2b4a;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .input-row input {
+      flex: 1;
+      min-width: 200px;
+      padding: 10px 12px;
+      font-family: 'Courier New', 'Lucida Console', monospace;
+      font-size: 16px;
+      border: 3px solid;
+      border-color: #7a7a7a #ffffff #ffffff #7a7a7a;
+      background: #ffffff;
+      color: #000;
+      outline: none;
+      box-shadow: inset 2px 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .input-row input:focus {
+      border-color: #0a246a #7a9cc6 #7a9cc6 #0a246a;
+      background: #ffffe0;
+    }
+
+    .input-row input:disabled {
+      background: #e8e6de;
+      color: #5a5a5a;
+      border-color: #a0a0a0 #c0c0c0 #c0c0c0 #a0a0a0;
+      cursor: wait;
+    }
+
+    .input-row button {
+      padding: 10px 28px;
+      background: #d4d0c8;
+      border: 3px solid;
+      border-color: #ffffff #404040 #404040 #ffffff;
+      font-weight: bold;
+      font-size: 16px;
+      font-family: 'Segoe UI', 'Tahoma', sans-serif;
+      cursor: pointer;
+      color: #0a246a;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      box-shadow: 2px 2px 0 #808080;
+      transition: all 0.05s ease;
+      white-space: nowrap;
+    }
+
+    .input-row button:active {
+      border-color: #404040 #ffffff #ffffff #404040;
+      box-shadow: 0 0 0 #808080;
+      transform: translate(2px, 2px);
+      background: #c0bcb0;
+    }
+
+    .input-row button:hover:not(:disabled) {
+      background: #e0ddd0;
+    }
+
+    .input-row button:disabled {
+      color: #808080;
+      cursor: wait;
+      background: #c8c4b8;
+      border-color: #a0a0a0 #e0e0e0 #e0e0e0 #a0a0a0;
+      box-shadow: 1px 1px 0 #a0a0a0;
+      transform: none;
+    }
+
+    /* ===== LOADING BAR (classic Windows progress) ===== */
+    .loading-container {
+      margin-top: 14px;
+      border: 2px solid;
+      border-color: #7a7a7a #ffffff #ffffff #7a7a7a;
+      background: #d4d0c8;
+      padding: 6px 10px 8px 10px;
+      display: none;   /* hidden by default, shown via JS */
+    }
+
+    .loading-container.visible {
+      display: block;
+    }
+
+    .loading-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: bold;
+      color: #1a2b4a;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .loading-label span:last-child {
+      font-family: 'Courier New', monospace;
+      color: #0a246a;
+    }
+
+    .progress-track {
+      height: 22px;
+      background: #ffffff;
+      border: 2px solid;
+      border-color: #7a7a7a #ffffff #ffffff #7a7a7a;
+      padding: 2px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.15);
+    }
+
+    /* classic segmented blocks */
+    .progress-blocks {
+      display: flex;
+      gap: 3px;
+      height: 100%;
+      width: 100%;
+    }
+
+    .progress-block {
+      flex: 1 0 0;
+      background: #0a246a;
+      border: 1px solid #4a6a9a;
+      box-shadow: inset 0 1px 0 #6a8aba;
+      opacity: 0.15;
+      transition: opacity 0.1s;
+    }
+
+    .progress-block.filled {
+      opacity: 1;
+      background: #0a246a;
+      box-shadow: inset 0 1px 0 #6a8aba, inset 0 -1px 0 #051840;
+    }
+
+    .progress-block.filled.animate {
+      background: #1e4b8a;
+      box-shadow: inset 0 1px 0 #7aa0d0;
+    }
+
+    /* animated shine overlay for that classic feel */
+    .progress-track::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      right: 2px;
+      bottom: 2px;
+      background: linear-gradient(90deg, 
+        rgba(255,255,255,0) 0%, 
+        rgba(255,255,255,0.25) 50%, 
+        rgba(255,255,255,0) 100%);
+      pointer-events: none;
+      animation: shine 1.8s linear infinite;
+      display: none;
+    }
+
+    .loading-container.visible .progress-track::after {
+      display: block;
+    }
+
+    @keyframes shine {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+
+    /* status message under bar */
+    .loading-status {
+      font-size: 11px;
+      color: #2d4b6e;
+      margin-top: 4px;
+      font-family: 'Courier New', monospace;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .info-panel {
+      background: #d9d6c7;
+      border: 2px solid;
+      border-color: #ffffff #a0a0a0 #a0a0a0 #ffffff;
+      padding: 14px 16px;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      margin-bottom: 18px;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #1f1f1f;
+    }
+
+    .info-panel .shield {
+      font-size: 36px;
+      line-height: 1;
+      filter: drop-shadow(2px 2px 0 #888);
+    }
+
+    .info-panel p {
+      margin-bottom: 4px;
+    }
+
+    .info-panel small {
+      color: #4d4d4d;
+      font-size: 11px;
+    }
+
+    .footer-links {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: #2b2b2b;
+      border-top: 1px solid #b0aa9a;
+      padding-top: 14px;
+      margin-top: 6px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .marquee-container {
+      background: #000;
+      color: #00ff00;
+      padding: 5px 0;
+      margin-top: 16px;
+      border: 2px solid;
+      border-color: #808080 #ffffff #ffffff #808080;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    .marquee-content {
+      display: inline-block;
+      animation: scrollLeft 16s linear infinite;
+      padding-left: 100%;
+    }
+
+    @keyframes scrollLeft {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-100%); }
+    }
+
+    /* little win98 touches */
+    .divider {
+      height: 2px;
+      background: #a0a0a0;
+      border-bottom: 1px solid #ffffff;
+      margin: 16px 0;
+    }
+
+    .ie-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #ffffff;
+      border: 1px solid #808080;
+      padding: 1px 8px 1px 4px;
+      border-radius: 2px;
+      font-size: 11px;
+      font-weight: bold;
+      color: #215a9e;
+    }
+
+    .ie-badge span {
+      font-size: 16px;
+    }
+
+    /* trust counter — now no numbers, just "many" */
+    .trust-counter {
+      background: #1a3a1a;
+      color: #b0ffb0;
+      padding: 2px 10px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: bold;
+      border: 1px solid #4a8a4a;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin-left: 6px;
+    }
+
+    .trust-counter .dot {
+      width: 6px;
+      height: 6px;
+      background: #00ff00;
+      border-radius: 50%;
+      animation: pulse 1.5s infinite;
+      box-shadow: 0 0 4px #00ff00;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .open-source-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #0a246a;
+      color: #ffffff;
+      padding: 3px 14px;
+      border-radius: 3px;
+      font-weight: bold;
+      font-size: 12px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      border: 2px solid;
+      border-color: #ffffff #404040 #404040 #ffffff;
+      box-shadow: 1px 1px 0 #808080;
+    }
+
+    .open-source-badge span {
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="window">
+    <!-- title bar with IE style -->
+    <div class="title-bar">
+      <div class="title-bar-text">
+        <span>🦍</span> GorillaLink — Secure Connection
+      </div>
+      <div class="title-bar-controls">
+        <button title="Minimize">–</button>
+        <button title="Maximize">□</button>
+        <button title="Close">✕</button>
+      </div>
+    </div>
+
+    <div class="window-body">
+      <!-- fake logo / header -->
+      <div class="header-logo">
+        <span>🦍🔗</span>
+        <h1>GorillaLink</h1>
+        <div class="ie-badge" style="margin-left: auto;">
+          <span>🌐</span> IE 6.0 style
+        </div>
+      </div>
+
+      <!-- security bar + worldwide trust (no specific numbers) -->
+      <div class="status-bar">
+        <span class="lock-icon">🔒</span>
+        <span><strong>Secure connection</strong> — 256-bit Gorilla encryption</span>
+        <span class="secure-badge" id="secureBadge">Verified</span>
+        <span class="trust-counter" title="Trusted worldwide">
+          <span class="dot"></span> trusted by many users worldwide
+        </span>
+        <span style="margin-left: auto; font-size: 11px; color: #2b2b2b;">🔐 SSL 3.0</span>
+      </div>
+
+      <!-- main form -->
+      <div class="link-form">
+        <label for="urlInput">Enter website link:</label>
+        <div class="input-row">
+          <input type="text" id="urlInput" placeholder="e.g., www.example.com or https://gorilla.com" value="https://">
+          <button id="goBtn">GO →</button>
+        </div>
+
+        <!-- LOADING BAR (hidden initially) -->
+        <div class="loading-container" id="loadingContainer">
+          <div class="loading-label">
+            <span>🦍 Establishing secure tunnel...</span>
+            <span id="loadingPercent">0%</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-blocks" id="progressBlocks"></div>
+          </div>
+          <div class="loading-status">
+            <span id="loadingMessage">Connecting to gorilla node...</span>
+            <span id="loadingSpeed">--- KB/s</span>
+          </div>
+        </div>
+
+        <div style="margin-top: 12px; font-size: 12px; color: #2d4b6e; display: flex; gap: 16px; flex-wrap: wrap;">
+          <span>✓ Opens in a new tab</span>
+          <span>✓ Secure redirect</span>
+          <span>✓ No history saved</span>
+          <span>✓ Usable with any OS</span>
+        </div>
+      </div>
+
+      <!-- fake info panel -->
+      <div class="info-panel">
+        <div class="shield">🛡️</div>
+        <div>
+          <p><strong>GorillaLink secure tunnel</strong> — your connection is protected by advanced primate-grade encryption. Trusted by many users worldwide.</p>
+          <small>When you click "GO", we'll verify the link and open it in a new browser tab. The gorilla guarantees safety across the globe.</small>
+        </div>
+      </div>
+
+      <!-- old school marquee (no specific numbers) -->
+      <div class="marquee-container">
+        <div class="marquee-content">
+          🦍 GorillaLink v2.1 — trusted worldwide — many secure connections daily — 🦍 no popups, just gorilla strength — 🦍 usable with any OS — always free — 🦍 used by schools, businesses, and gorillas everywhere — join the jungle
+        </div>
+      </div>
+
+      <!-- footer: replaced links with "Open source system" text -->
+      <div class="footer-links">
+        <div>
+          <span class="open-source-badge">
+            <span>📖</span> open source system
+          </span>
+        </div>
+        <div>
+          <span>© 1998–2025 GorillaLink</span>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div style="display: flex; justify-content: space-between; font-size: 11px; color: #5a5a5a; padding-bottom: 4px; flex-wrap: wrap; gap: 6px;">
+        <span>🔒 Connection: TLS 1.0 (Gorilla enhanced)</span>
+        <span>🌍 many users online</span>
+        <span>🖥️ Usable with any OS</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const urlInput = document.getElementById('urlInput');
+      const goBtn = document.getElementById('goBtn');
+      const loadingContainer = document.getElementById('loadingContainer');
+      const progressBlocks = document.getElementById('progressBlocks');
+      const loadingPercent = document.getElementById('loadingPercent');
+      const loadingMessage = document.getElementById('loadingMessage');
+      const loadingSpeed = document.getElementById('loadingSpeed');
+      const secureBadge = document.getElementById('secureBadge');
+
+      // Build the segmented progress blocks (20 classic blocks)
+      const TOTAL_BLOCKS = 20;
+      let blocks = [];
+      for (let i = 0; i < TOTAL_BLOCKS; i++) {
+        const block = document.createElement('div');
+        block.className = 'progress-block';
+        progressBlocks.appendChild(block);
+        blocks.push(block);
+      }
+
+      // Loading state
+      let isLoading = false;
+      let loadingInterval = null;
+
+      // Prevent double submission while loading
+      function setLoadingState(active) {
+        isLoading = active;
+        goBtn.disabled = active;
+        urlInput.disabled = active;
+        if (active) {
+          loadingContainer.classList.add('visible');
+          secureBadge.classList.add('loading');
+          secureBadge.textContent = 'CONNECTING';
+        } else {
+          loadingContainer.classList.remove('visible');
+          secureBadge.classList.remove('loading');
+          secureBadge.textContent = 'Verified';
+        }
+      }
+
+      // Reset the progress bar visual
+      function resetProgress() {
+        blocks.forEach(block => {
+          block.classList.remove('filled', 'animate');
+        });
+        loadingPercent.textContent = '0%';
+        loadingMessage.textContent = 'Connecting to gorilla node...';
+        loadingSpeed.textContent = '--- KB/s';
+      }
+
+      // Update progress to a specific percentage (0–100)
+      function updateProgress(percent) {
+        const filledCount = Math.round((percent / 100) * TOTAL_BLOCKS);
+        blocks.forEach((block, index) => {
+          if (index < filledCount) {
+            block.classList.add('filled');
+            // add a subtle animated variant for the leading edge
+            if (index === filledCount - 1) {
+              block.classList.add('animate');
+            } else {
+              block.classList.remove('animate');
+            }
+          } else {
+            block.classList.remove('filled', 'animate');
+          }
+        });
+        loadingPercent.textContent = Math.min(100, Math.floor(percent)) + '%';
+      }
+
+      // Simulate the loading sequence (fun gorilla-flavored messages)
+      function simulateLoading(onComplete) {
+        resetProgress();
+        let progress = 0;
+        const stepTime = 45; // ms per step, roughly 20 steps -> ~900ms total
+
+        const messages = [
+          { threshold: 0,  text: '🔍 Resolving gorilla DNS...', speed: '0.1 KB/s' },
+          { threshold: 8,  text: '🔐 Negotiating 256-bit encryption...', speed: '1.2 KB/s' },
+          { threshold: 18, text: '🌍 Routing through secure jungle nodes...', speed: '2.8 KB/s' },
+          { threshold: 30, text: '🛡️ Verifying SSL certificate...', speed: '4.1 KB/s' },
+          { threshold: 45, text: '⚡ Establishing secure tunnel...', speed: '7.3 KB/s' },
+          { threshold: 60, text: '📡 Transmitting gorilla handshake...', speed: '9.8 KB/s' },
+          { threshold: 75, text: '✅ Tunnel established — final checks...', speed: '11.4 KB/s' },
+          { threshold: 90, text: '🦍 Ready! Launching new tab...', speed: '12.7 KB/s' },
+        ];
+
+        loadingInterval = setInterval(() => {
+          // advance progress with slight random variation
+          progress += Math.random() * 6 + 3; // 3–9% per step
+          if (progress > 100) progress = 100;
+
+          updateProgress(progress);
+
+          // find current message
+          let currentMsg = messages[0];
+          for (let msg of messages) {
+            if (progress >= msg.threshold) currentMsg = msg;
+          }
+          loadingMessage.textContent = currentMsg.text;
+          loadingSpeed.textContent = currentMsg.speed;
+
+          if (progress >= 100) {
+            clearInterval(loadingInterval);
+            loadingInterval = null;
+            loadingMessage.textContent = '✅ Connection secure — opening...';
+            loadingSpeed.textContent = '13.0 KB/s';
+            // brief pause to show "100%"
+            setTimeout(() => {
+              setLoadingState(false);
+              resetProgress();
+              onComplete();
+            }, 280);
+          }
+        }, stepTime);
+      }
+
+      // normalize URL (add https:// if missing scheme)
+      function normalizeUrl(input) {
+        let raw = input.trim();
+        if (raw === '') return null;
+        if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(raw)) {
+          raw = 'https://' + raw;
+        }
+        return raw;
+      }
+
+      // Core function: validate, then show loading, then open
+      function handleGo() {
+        if (isLoading) return; // already loading
+
+        let rawValue = urlInput.value;
+        if (!rawValue || rawValue.trim() === '') {
+          alert('🦍 Please enter a website link, human.');
+          return;
+        }
+
+        let trimmed = rawValue.trim();
+        if (trimmed === 'https://' || trimmed === 'http://') {
+          alert('🦍 Please enter a full website address (e.g., www.example.com).');
+          return;
+        }
+
+        let targetUrl = normalizeUrl(trimmed);
+        if (!targetUrl) {
+          alert('🦍 Invalid link. Try again.');
+          return;
+        }
+
+        // Basic safety
+        const lowerUrl = targetUrl.toLowerCase();
+        const dangerousSchemes = ['javascript:', 'data:', 'vbscript:', 'file:'];
+        if (dangerousSchemes.some(scheme => lowerUrl.startsWith(scheme))) {
+          alert('🦍 GorillaLink blocked a potentially unsafe link. Only web links allowed.');
+          return;
+        }
+
+        // Start loading sequence, then open link
+        setLoadingState(true);
+        simulateLoading(() => {
+          // Open in new tab
+          const newWindow = window.open(targetUrl, '_blank', 'noopener,noreferrer');
+          if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+            const a = document.createElement('a');
+            a.href = targetUrl;
+            a.target = '_blank';
+            a.rel = 'noopener noreferrer';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+          }
+        });
+      }
+
+      // Event listeners
+      goBtn.addEventListener('click', handleGo);
+
+      urlInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          handleGo();
+        }
+      });
+
+      urlInput.addEventListener('focus', function() {
+        if (this.value === 'https://') {
+          this.select();
+        }
+      });
+
+      // Console easter egg
+      console.log('🦍 GorillaLink ready — trusted by many users worldwide, secure as a silverback.');
+      console.log('📊 many users • many countries • 256-bit gorilla encryption');
+    })();
+  </script>
+</body>
+</html>
